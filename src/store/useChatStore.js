@@ -9,6 +9,7 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null, // If null, user is in AI chat
   isUsersLoading: false,
   isMessagesLoading: false,
+  isSendingMessage: false,
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -48,11 +49,25 @@ export const useChatStore = create((set, get) => ({
 
   sendMessage: async (messageData) => {
     const { selectedUser, messages } = get();
+    if (!selectedUser) return;
+
+    set({ isSendingMessage: true });
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
+      const res = await axiosInstance.post(
+        `/messages/send/${selectedUser._id}`,
+        messageData
+      );
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send message");
+      const data = error.response?.data;
+      const hint =
+        data?.details != null && data?.error != null
+          ? `${data.error} ${data.details}`
+          : data?.error || data?.message;
+      toast.error(hint || "Failed to send message");
+      throw error;
+    } finally {
+      set({ isSendingMessage: false });
     }
   },
 
@@ -96,8 +111,13 @@ export const useChatStore = create((set, get) => ({
     if (!socket) return;
 
     socket.on("newMessage", (newMessage) => {
-      // only add if message is from the selected user
-      if (newMessage.senderId !== selectedUser._id) return;
+      const senderId = newMessage.senderId?._id ?? newMessage.senderId;
+      if (String(senderId) !== String(selectedUser._id)) return;
+
+      const exists = get().messages.some(
+        (m) => String(m._id) === String(newMessage._id)
+      );
+      if (exists) return;
 
       set({
         messages: [...get().messages, newMessage],

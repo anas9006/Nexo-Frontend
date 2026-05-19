@@ -6,6 +6,8 @@ import {
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
+import { compressImageFile, blobToUploadDataURL } from "../lib/media.js";
+import ImageLightbox from "./ImageLightbox.jsx";
 
 /* ─────────────────────────────────────────────
    All colors intentionally use the ORIGINAL
@@ -99,7 +101,7 @@ const EmptyState = ({ selectedUser }) => (
 );
 
 /* ── Single message bubble ── */
-const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) => {
+const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onImageClick }) => {
   const time = new Date(msg.createdAt || Date.now())
     .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -158,12 +160,18 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) =>
 
             {/* Image attachment */}
             {msg.image && (
-              <img
-                src={msg.image}
-                alt="Attachment"
-                className="rounded-xl max-h-52 w-full object-cover"
+              <button
+                type="button"
+                onClick={() => onImageClick?.(msg.image)}
+                className="block p-0 border-0 bg-transparent cursor-zoom-in rounded-xl overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 style={{ marginBottom: msg.text ? 6 : 0 }}
-              />
+              >
+                <img
+                  src={msg.image}
+                  alt="Attachment"
+                  className="rounded-xl max-h-52 w-full object-cover hover:opacity-95 transition-opacity"
+                />
+              </button>
             )}
 
             {/* Audio attachment */}
@@ -171,7 +179,8 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) =>
               <audio
                 src={msg.audio}
                 controls
-                className="h-8 w-full max-w-[200px]"
+                preload="metadata"
+                className="h-9 w-full min-w-[180px] max-w-[260px]"
                 style={{ marginBottom: msg.text ? 6 : 0 }}
               />
             )}
@@ -207,7 +216,8 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) =>
 const ChatWindow = ({ onBack, showBack = false }) => {
   const {
     messages, getMessages, getAiMessages, sendMessage, sendAiMessage,
-    isMessagesLoading, selectedUser, subscribeToMessages, unsubscribeFromMessages,
+    isMessagesLoading, isSendingMessage, selectedUser, subscribeToMessages,
+    unsubscribeFromMessages,
   } = useChatStore();
   const { authUser } = useAuthStore();
 
@@ -216,6 +226,7 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [aiTyping, setAiTyping] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -238,12 +249,16 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   }, [messages, aiTyping]);
 
   /* image */
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => setImagePreview(reader.result);
+    try {
+      const compressed = await compressImageFile(file);
+      setImagePreview(compressed);
+    } catch (err) {
+      toast.error(err.message || "Could not load image");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
   const removeImage = () => { setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; };
 
@@ -272,25 +287,33 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview && !audioBlob) return;
+    if (isSendingMessage) return;
+
     try {
       let audioBase64 = null;
       if (audioBlob) {
-        audioBase64 = await new Promise((res, rej) => {
-          const r = new FileReader();
-          r.onloadend = () => res(r.result);
-          r.onerror = rej;
-          r.readAsDataURL(audioBlob);
-        });
+        audioBase64 = await blobToUploadDataURL(audioBlob);
       }
+
       if (selectedUser) {
-        await sendMessage({ text: text.trim(), image: imagePreview, audio: audioBase64 });
+        await sendMessage({
+          text: text.trim() || undefined,
+          image: imagePreview || undefined,
+          audio: audioBase64 || undefined,
+        });
       } else {
-        if (imagePreview || audioBlob) { toast.error("AI currently only supports text messages."); return; }
+        if (imagePreview || audioBlob) {
+          toast.error("Nexo AI only supports text messages right now.");
+          return;
+        }
         setAiTyping(true);
         await sendAiMessage(text.trim());
         setAiTyping(false);
       }
-      setText(""); setImagePreview(null); setAudioBlob(null);
+
+      setText("");
+      setImagePreview(null);
+      setAudioBlob(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       inputRef.current?.focus();
     } catch (error) {
@@ -299,7 +322,10 @@ const ChatWindow = ({ onBack, showBack = false }) => {
     }
   };
 
-  const canSend = !!(text.trim() || imagePreview || audioBlob) && !isRecording;
+  const canSend =
+    !!(text.trim() || imagePreview || audioBlob) &&
+    !isRecording &&
+    !isSendingMessage;
 
   /* group by date */
   const renderMessages = () => {
@@ -326,6 +352,7 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           authUser={authUser}
           selectedUser={selectedUser}
           onDelete={(id) => useChatStore.getState().deleteMessage(id)}
+          onImageClick={setLightboxSrc}
         />
       );
     });
@@ -416,10 +443,22 @@ const ChatWindow = ({ onBack, showBack = false }) => {
 
           {imagePreview && (
             <div className="relative inline-block">
-              <img src={imagePreview} alt="Preview"
-                className="w-14 h-14 object-cover rounded-xl border border-border block" />
-              <button onClick={removeImage}
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors border-2 border-white">
+              <button
+                type="button"
+                onClick={() => setLightboxSrc(imagePreview)}
+                className="block rounded-xl overflow-hidden border border-border cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              >
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-14 h-14 object-cover block hover:opacity-90 transition-opacity"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors border-2 border-white"
+              >
                 <X className="w-2.5 h-2.5" />
               </button>
             </div>
@@ -457,7 +496,13 @@ const ChatWindow = ({ onBack, showBack = false }) => {
         onSubmit={handleSendMessage}
         className="p-2 sm:p-3 bg-surface mx-2 sm:mx-4 mb-2 sm:mb-4 mt-0 rounded-2xl flex items-center gap-2 shadow-sm border border-border"
       >
-        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageChange} />
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleImageChange}
+        />
 
         {/* Image button */}
         <button
@@ -505,10 +550,21 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           type="submit"
           disabled={!canSend || isRecording}
           className="w-9 h-9 sm:w-10 sm:h-10 bg-primary hover:bg-primary-dark text-white rounded-full flex items-center justify-center transition-all disabled:opacity-50 disabled:scale-95 active:scale-95 hover:scale-105 flex-shrink-0"
+          aria-label="Send message"
         >
-          <Send className="w-4 h-4" />
+          {isSendingMessage ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </button>
       </form>
+
+      <ImageLightbox
+        src={lightboxSrc}
+        alt="Chat image"
+        onClose={() => setLightboxSrc(null)}
+      />
     </div>
   );
 };
