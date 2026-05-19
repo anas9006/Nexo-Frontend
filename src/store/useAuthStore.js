@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
 import { API_BASE_URL } from "../lib/config.js";
+import { setStoredToken, clearStoredToken } from "../lib/authToken.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
@@ -19,6 +20,7 @@ export const useAuthStore = create((set, get) => ({
       get().connectSocket();
     } catch (error) {
       console.log("Error in checkAuth:", error);
+      clearStoredToken();
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
@@ -29,7 +31,9 @@ export const useAuthStore = create((set, get) => ({
     set({ isSigningUp: true });
     try {
       const res = await axiosInstance.post("/auth/signup", data);
-      set({ authUser: res.data });
+      const { token, ...user } = res.data;
+      setStoredToken(token);
+      set({ authUser: user });
       toast.success("Account created successfully");
       get().connectSocket();
     } catch (error) {
@@ -43,7 +47,9 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoggingIn: true });
     try {
       const res = await axiosInstance.post("/auth/login", data);
-      set({ authUser: res.data });
+      const { token, ...user } = res.data;
+      setStoredToken(token);
+      set({ authUser: user });
       toast.success("Logged in successfully");
       get().connectSocket();
     } catch (error) {
@@ -56,6 +62,7 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
+      clearStoredToken();
       set({ authUser: null });
       toast.success("Logged out successfully");
       get().disconnectSocket();
