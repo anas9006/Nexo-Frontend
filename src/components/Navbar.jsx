@@ -1,9 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, MessageSquare, LogOut, User, Settings, ShieldCheck } from "lucide-react";
+import {
+  Search,
+  Bell,
+  MessageSquare,
+  LogOut,
+  User,
+  Settings,
+  ShieldCheck,
+  PanelLeft,
+} from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Link } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar = ({ onOpenSidebar, showSidebarToggle = false }) => {
   const { authUser, logout } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -19,80 +28,107 @@ const Navbar = () => {
   }, []);
 
   return (
-    <div className="h-16 flex items-center justify-between px-6 bg-surface shadow-sm relative z-20 flex-shrink-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-bold text-xl">N</span>
+    <header className="h-11 sm:h-12 flex items-center justify-between px-2 sm:px-4 bg-surface border-b border-border shrink-0 z-20">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+        {showSidebarToggle && (
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            className="nexo-icon-btn md:hidden"
+            aria-label="Open conversations"
+          >
+            <PanelLeft className="w-5 h-5" />
+          </button>
+        )}
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <span className="text-primary font-bold text-base sm:text-lg">N</span>
         </div>
-        <span className="font-bold text-xl text-textPrimary hidden sm:block">Nexo</span>
+        <span className="font-bold text-base sm:text-lg text-text-primary truncate">
+          Nexo
+        </span>
       </div>
 
-      {/* Search Bar - Mock for global search */}
-      <div className="flex-1 max-w-md mx-4">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-textSecondary" />
-          </div>
+      <div className="hidden sm:flex flex-1 max-w-xs lg:max-w-md mx-3 min-w-0">
+        <div className="relative w-full">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 bg-background border-none rounded-full focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm"
+            className="nexo-input pl-9 py-1.5 text-sm rounded-full border-transparent bg-background"
             placeholder="Search..."
           />
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-4">
-        <button className="p-2 text-textSecondary hover:text-textPrimary transition-colors relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-surface"></span>
+      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        <button type="button" className="nexo-icon-btn relative hidden sm:flex">
+          <Bell className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full ring-2 ring-surface" />
         </button>
-        <button className="p-2 text-textSecondary hover:text-textPrimary transition-colors">
-          <MessageSquare className="w-5 h-5" />
+        <button type="button" className="nexo-icon-btn hidden md:flex">
+          <MessageSquare className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
         </button>
-        
-        {/* Profile Dropdown */}
+
         <div className="relative" ref={dropdownRef}>
-          <button 
+          <button
+            type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-8 h-8 rounded-full bg-primary/20 overflow-hidden cursor-pointer ml-2 hover:ring-2 hover:ring-primary hover:ring-offset-2 transition-all focus:outline-none"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/15 overflow-hidden ml-1 ring-2 ring-transparent hover:ring-primary/30 transition-all"
           >
             {authUser?.profilePic ? (
-              <img src={authUser.profilePic} alt="Profile" className="w-full h-full object-cover" />
+              <img
+                src={authUser.profilePic}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-primary font-bold">
+              <span className="w-full h-full flex items-center justify-center text-primary font-semibold text-sm">
                 {authUser?.fullName?.charAt(0)}
-              </div>
+              </span>
             )}
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-surface rounded-xl shadow-lg py-2 border border-gray-100 py-1 z-50">
-              <div className="px-4 py-2 border-b border-gray-100">
-                <p className="text-sm font-medium text-textPrimary truncate">{authUser?.fullName}</p>
-                <p className="text-xs text-textSecondary truncate">{authUser?.email}</p>
+            <div className="absolute right-0 mt-1.5 w-44 sm:w-48 bg-surface rounded-xl shadow-lg border border-border py-1 z-50">
+              <div className="px-3 py-2 border-b border-border">
+                <p className="text-sm font-medium text-text-primary truncate">
+                  {authUser?.fullName}
+                </p>
+                <p className="text-xs text-text-secondary truncate">
+                  {authUser?.email}
+                </p>
               </div>
-              
-              <Link to="/profile" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
+
+              <Link
+                to="/profile"
+                onClick={() => setIsDropdownOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
+              >
                 <User className="w-4 h-4" /> Profile
               </Link>
-              
-              <Link to="/admin" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-textSecondary hover:bg-background hover:text-textPrimary transition-colors">
-                <ShieldCheck className="w-4 h-4" /> Admin Dashboard
+
+              <Link
+                to="/admin"
+                onClick={() => setIsDropdownOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
+              >
+                <ShieldCheck className="w-4 h-4" /> Admin
               </Link>
-              
-              <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-textSecondary hover:bg-background hover:text-textPrimary transition-colors text-left">
+
+              <button
+                type="button"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary text-left"
+              >
                 <Settings className="w-4 h-4" /> Settings
               </button>
-              
-              <div className="border-t border-gray-100 mt-1 pt-1">
-                <button 
+
+              <div className="border-t border-border mt-0.5 pt-0.5">
+                <button
+                  type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
                     logout();
                   }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-primary-light text-left"
                 >
                   <LogOut className="w-4 h-4" /> Logout
                 </button>
@@ -101,7 +137,7 @@ const Navbar = () => {
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 

@@ -22,63 +22,54 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <Link to="/" className="p-2 bg-surface rounded-full text-textSecondary hover:text-primary shadow-sm transition-colors">
+    <div className="min-h-[100dvh] bg-background overflow-y-auto nexo-scrollbar p-3 sm:p-4 md:p-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center gap-3 mb-5 sm:mb-6">
+          <Link
+            to="/"
+            className="p-2 bg-surface rounded-full text-text-secondary hover:text-primary border border-border transition-colors shrink-0"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-textPrimary">Admin Dashboard</h1>
-            <p className="text-textSecondary">Overview of Nexo Chat platform</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary truncate">
+              Admin dashboard
+            </h1>
+            <p className="text-text-secondary text-xs sm:text-sm">Nexo Chat overview</p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="w-7 h-7 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Total Users Card */}
-            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
-                <Users className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-textSecondary font-medium">Total Users</p>
-                <h3 className="text-3xl font-bold text-textPrimary">{stats?.totalUsers || 0}</h3>
-              </div>
-            </div>
-
-            {/* Total Messages Card */}
-            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-                <MessageSquare className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-textSecondary font-medium">Total Messages</p>
-                <h3 className="text-3xl font-bold text-textPrimary">{stats?.totalMessages || 0}</h3>
-              </div>
-            </div>
-
-            {/* AI Interactions Card */}
-            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-                <Sparkles className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-textSecondary font-medium">AI Interactions</p>
-                <h3 className="text-3xl font-bold text-textPrimary">{stats?.aiMessages || 0}</h3>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <StatCard
+              icon={Users}
+              label="Total users"
+              value={stats?.totalUsers || 0}
+              tone="primary"
+            />
+            <StatCard
+              icon={MessageSquare}
+              label="Total messages"
+              value={stats?.totalMessages || 0}
+              tone="primary"
+            />
+            <StatCard
+              icon={Sparkles}
+              label="AI interactions"
+              value={stats?.aiMessages || 0}
+              tone="accent"
+            />
           </div>
         )}
 
-        <div className="mt-8 bg-surface p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-xl font-bold text-textPrimary mb-4">Platform Health</h2>
-          <div className="p-4 bg-green-50 border border-green-100 rounded-xl text-green-700 flex items-center gap-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+        <div className="mt-4 sm:mt-6 nexo-panel p-4 sm:p-5">
+          <h2 className="text-base font-bold text-text-primary mb-3">Platform health</h2>
+          <div className="p-3 bg-primary-light border border-primary/20 rounded-xl text-primary flex items-center gap-2 text-sm">
+            <span className="w-2 h-2 bg-success rounded-full animate-pulse shrink-0" />
             All systems operational.
           </div>
         </div>
@@ -86,5 +77,26 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
+function StatCard({ icon: Icon, label, value, tone }) {
+  const iconWrap =
+    tone === "accent"
+      ? "bg-primary/10 text-primary"
+      : "bg-primary/10 text-primary";
+
+  return (
+    <div className="nexo-panel p-4 flex items-center gap-3 sm:gap-4">
+      <div
+        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${iconWrap}`}
+      >
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-text-secondary text-xs sm:text-sm font-medium">{label}</p>
+        <h3 className="text-2xl sm:text-3xl font-bold text-text-primary">{value}</h3>
+      </div>
+    </div>
+  );
+}
 
 export default AdminDashboard;

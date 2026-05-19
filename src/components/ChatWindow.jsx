@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Gift, MoreHorizontal, Image as ImageIcon,
-  Mic, Send, Loader2, X, Square, Trash2, Bot, CheckCheck,
+  Mic, Send, Loader2, X, Square, Trash2, Bot, CheckCheck, ChevronLeft,
 } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -10,8 +10,8 @@ import toast from "react-hot-toast";
 /* ─────────────────────────────────────────────
    All colors intentionally use the ORIGINAL
    Tailwind tokens: bg-primary, bg-surface,
-   bg-background, text-textPrimary,
-   text-textSecondary, hover:bg-primaryDark
+   bg-background, text-text-primary,
+   text-text-secondary, hover:bg-primary-dark
    — zero custom hex values introduced.
 ───────────────────────────────────────────── */
 
@@ -44,9 +44,9 @@ const OnlineDot = () => (
 /* ── Date divider ── */
 const DateDivider = ({ label }) => (
   <div className="flex items-center gap-3 my-1">
-    <div className="flex-1 h-px bg-gray-100" />
-    <span className="text-textSecondary font-semibold whitespace-nowrap" style={{ fontSize: 11 }}>{label}</span>
-    <div className="flex-1 h-px bg-gray-100" />
+    <div className="flex-1 h-px bg-border" />
+    <span className="text-text-secondary font-semibold whitespace-nowrap" style={{ fontSize: 11 }}>{label}</span>
+    <div className="flex-1 h-px bg-border" />
   </div>
 );
 
@@ -54,7 +54,7 @@ const DateDivider = ({ label }) => (
 const TypingIndicator = () => (
   <div className="flex items-end gap-2">
     <div className="mb-5"><Avatar isAi size={28} /></div>
-    <div className="bg-surface rounded-2xl rounded-bl-[4px] px-4 py-3 border border-gray-100 flex items-center gap-1.5 shadow-sm">
+    <div className="bg-surface rounded-2xl rounded-bl-[4px] px-4 py-3 border border-border flex items-center gap-1.5 shadow-sm">
       {[0, 1, 2].map(i => (
         <span key={i} className="inline-block w-1.5 h-1.5 rounded-full bg-textSecondary/60"
           style={{ animation: `typingDot 1.2s ${i * 0.2}s ease-in-out infinite` }} />
@@ -77,7 +77,7 @@ const RecordingWave = () => (
 
 /* ── Empty state ── */
 const EmptyState = ({ selectedUser }) => (
-  <div className="flex flex-col items-center justify-center h-full gap-3 py-12 text-textSecondary">
+  <div className="flex flex-col items-center justify-center h-full gap-3 py-12 text-text-secondary">
     {selectedUser ? (
       <>
         <Avatar user={selectedUser} size={56} />
@@ -88,7 +88,7 @@ const EmptyState = ({ selectedUser }) => (
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
           <Sparkles className="text-primary w-7 h-7" style={{ animation: "aipulse 2s ease-in-out infinite" }} />
         </div>
-        <p className="text-textPrimary font-bold text-base">Ask Nexo AI anything</p>
+        <p className="text-text-primary font-bold text-base">Ask Nexo AI anything</p>
         <p className="text-sm text-center max-w-[260px] leading-relaxed">
           Powered by advanced AI. Ask questions, brainstorm ideas, or just chat!
         </p>
@@ -118,7 +118,7 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) =>
 
         {/* Tiny label above received bubble */}
         {!isMe && (
-          <span className="text-textSecondary font-semibold pl-1 leading-none" style={{ fontSize: 11 }}>
+          <span className="text-text-secondary font-semibold pl-1 leading-none" style={{ fontSize: 11 }}>
             {isAi ? "Nexo AI" : selectedUser?.fullName?.split(" ")[0]}
           </span>
         )}
@@ -143,8 +143,8 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) =>
             ${isMe
               ? "bg-primary text-white rounded-br-[4px] shadow-md shadow-primary/20"
               : isAi
-                ? "bg-primary/10 text-textPrimary rounded-bl-[4px] border border-primary/15"
-                : "bg-surface text-textPrimary rounded-bl-[4px] border border-gray-100 shadow-sm"
+                ? "bg-primary/10 text-text-primary rounded-bl-[4px] border border-primary/15"
+                : "bg-surface text-text-primary rounded-bl-[4px] border border-border shadow-sm"
             }
           `}>
 
@@ -204,7 +204,7 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete }) =>
 /* ─────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────── */
-const ChatWindow = () => {
+const ChatWindow = ({ onBack, showBack = false }) => {
   const {
     messages, getMessages, getAiMessages, sendMessage, sendAiMessage,
     isMessagesLoading, selectedUser, subscribeToMessages, unsubscribeFromMessages,
@@ -335,19 +335,23 @@ const ChatWindow = () => {
   return (
     <div className="flex-1 bg-background flex flex-col relative min-w-0 min-h-0 h-full">
 
-      {/* ── Scrollbar style ── */}
       <style>{`
-        .chat-messages::-webkit-scrollbar{width:3px}
-        .chat-messages::-webkit-scrollbar-track{background:transparent}
-        .chat-messages::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:99px}
         @keyframes recPulse{0%,100%{opacity:1}50%{opacity:.2}}
         @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
       `}</style>
 
-      {/* ─── Header ─── */}
-      <div className="h-14 sm:h-16 bg-surface px-4 sm:px-6 flex items-center justify-between border-b border-gray-100 gap-3 flex-shrink-0">
-
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <header className="h-12 sm:h-14 bg-surface px-2 sm:px-4 flex items-center justify-between border-b border-border gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+          {showBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="nexo-icon-btn shrink-0"
+              aria-label="Back to conversations"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
           {selectedUser ? (
             <>
               <div className="relative flex-shrink-0">
@@ -355,18 +359,18 @@ const ChatWindow = () => {
                 <span className="absolute -bottom-0.5 -right-0.5"><OnlineDot /></span>
               </div>
               <div className="min-w-0">
-                <h2 className="font-bold text-textPrimary text-sm sm:text-base truncate leading-tight">
+                <h2 className="font-bold text-text-primary text-sm sm:text-base truncate leading-tight">
                   {selectedUser.fullName}
                 </h2>
-                <p className="text-xs text-green-500 font-medium hidden sm:block leading-tight">Online</p>
+                <p className="text-xs text-success font-medium hidden sm:block leading-tight">Online</p>
               </div>
             </>
           ) : (
             <>
               <Avatar isAi size={36} />
               <div className="min-w-0">
-                <h2 className="font-bold text-textPrimary text-sm sm:text-base leading-tight">Nexo AI</h2>
-                <p className="text-xs text-textSecondary hidden sm:block truncate leading-tight">
+                <h2 className="font-bold text-text-primary text-sm sm:text-base leading-tight">Nexo AI</h2>
+                <p className="text-xs text-text-secondary hidden sm:block truncate leading-tight">
                   Chat with smartest AI – Experience the power of AI with us
                 </p>
               </div>
@@ -376,26 +380,25 @@ const ChatWindow = () => {
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {!selectedUser && (
-            <button className="bg-textPrimary text-white px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-transform hover:scale-105 active:scale-95">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+            <button type="button" className="bg-text-primary text-white px-2.5 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-transform hover:scale-105 active:scale-95">
+              <Sparkles className="w-3 h-3 text-primary" />
               <span className="hidden sm:inline">Upgrade</span>
             </button>
           )}
-          <button className="p-1.5 sm:p-2 text-textSecondary hover:text-textPrimary transition-colors rounded-full hover:bg-gray-100">
+          <button type="button" className="nexo-icon-btn">
             <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <button className="p-1.5 sm:p-2 text-textSecondary hover:text-textPrimary transition-colors rounded-full hover:bg-gray-100">
+          <button type="button" className="nexo-icon-btn">
             <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* ─── Messages ─── */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 flex flex-col gap-2 chat-messages">
+      <div className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 flex flex-col gap-2 nexo-scrollbar min-h-0">
         {isMessagesLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <Loader2 className="w-7 h-7 text-primary animate-spin" />
-            <span className="text-sm text-textSecondary">Loading messages…</span>
+            <span className="text-sm text-text-secondary">Loading messages…</span>
           </div>
         ) : messages.length === 0 ? (
           <EmptyState selectedUser={selectedUser} />
@@ -409,12 +412,12 @@ const ChatWindow = () => {
 
       {/* ─── Preview bar ─── */}
       {(imagePreview || audioBlob || isRecording) && (
-        <div className="bg-surface px-3 sm:px-4 py-3 mx-2 sm:mx-4 mb-2 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 flex-wrap animate-in fade-in slide-in-from-bottom-2">
+        <div className="bg-surface px-3 sm:px-4 py-3 mx-2 sm:mx-4 mb-2 rounded-2xl shadow-sm border border-border flex items-center gap-3 flex-wrap animate-in fade-in slide-in-from-bottom-2">
 
           {imagePreview && (
             <div className="relative inline-block">
               <img src={imagePreview} alt="Preview"
-                className="w-14 h-14 object-cover rounded-xl border border-gray-200 block" />
+                className="w-14 h-14 object-cover rounded-xl border border-border block" />
               <button onClick={removeImage}
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors border-2 border-white">
                 <X className="w-2.5 h-2.5" />
@@ -452,7 +455,7 @@ const ChatWindow = () => {
       {/* ─── Input form ─── */}
       <form
         onSubmit={handleSendMessage}
-        className="p-2 sm:p-3 bg-surface mx-2 sm:mx-4 mb-2 sm:mb-4 mt-0 rounded-2xl flex items-center gap-2 shadow-sm border border-gray-100"
+        className="p-2 sm:p-3 bg-surface mx-2 sm:mx-4 mb-2 sm:mb-4 mt-0 rounded-2xl flex items-center gap-2 shadow-sm border border-border"
       >
         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageChange} />
 
@@ -463,7 +466,7 @@ const ChatWindow = () => {
           className={`p-2 rounded-full transition-colors flex-shrink-0 ${
             imagePreview
               ? "bg-primary/20 text-primary"
-              : "text-textSecondary hover:text-textPrimary bg-background hover:bg-gray-100"
+              : "text-text-secondary hover:text-text-primary bg-background hover:bg-background"
           }`}
         >
           <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -476,7 +479,7 @@ const ChatWindow = () => {
           className={`p-2 rounded-full transition-colors flex-shrink-0 ${
             isRecording || audioBlob
               ? "bg-red-100 text-red-500"
-              : "text-textSecondary hover:text-textPrimary bg-background hover:bg-gray-100"
+              : "text-text-secondary hover:text-text-primary bg-background hover:bg-background"
           }`}
           style={{ animation: isRecording ? "micPulse 1s ease-in-out infinite" : "none" }}
         >
@@ -493,7 +496,7 @@ const ChatWindow = () => {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); }
           }}
           placeholder={selectedUser ? `Message ${selectedUser.fullName}...` : "Let's ask Nexo AI..."}
-          className="flex-1 bg-transparent outline-none text-textPrimary placeholder-textSecondary text-sm px-1 min-w-0"
+          className="flex-1 bg-transparent outline-none text-text-primary placeholder-textSecondary text-sm px-1 min-w-0"
           disabled={isRecording}
         />
 
@@ -501,7 +504,7 @@ const ChatWindow = () => {
         <button
           type="submit"
           disabled={!canSend || isRecording}
-          className="w-9 h-9 sm:w-10 sm:h-10 bg-primary hover:bg-primaryDark text-white rounded-full flex items-center justify-center transition-all disabled:opacity-50 disabled:scale-95 active:scale-95 hover:scale-105 flex-shrink-0"
+          className="w-9 h-9 sm:w-10 sm:h-10 bg-primary hover:bg-primary-dark text-white rounded-full flex items-center justify-center transition-all disabled:opacity-50 disabled:scale-95 active:scale-95 hover:scale-105 flex-shrink-0"
         >
           <Send className="w-4 h-4" />
         </button>

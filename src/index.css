@@ -3,14 +3,83 @@
 @theme {
   --color-primary: #ff6a3d;
   --color-primary-dark: #e55a2d;
-  --color-background: #f7f7f8;
+  --color-primary-light: #fff4f0;
+  --color-background: #f4f4f5;
   --color-surface: #ffffff;
   --color-text-primary: #1a1a1a;
-  --color-text-secondary: #8a8a8a;
+  --color-text-secondary: #737373;
+  --color-border: #e8e8ea;
+  --color-border-strong: #d4d4d8;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+
+  --spacing-nav: 3rem;
+  --spacing-nav-sm: 2.75rem;
+  --radius-panel: 0.875rem;
 }
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-background text-text-primary antialiased font-sans h-screen w-screen overflow-hidden;
+    @apply bg-background text-text-primary antialiased font-sans;
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    @apply h-full w-full;
+  }
+
+  input,
+  textarea,
+  button {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  .nexo-panel {
+    @apply bg-surface border border-border rounded-xl shadow-sm overflow-hidden;
+  }
+
+  .nexo-input {
+    @apply w-full bg-background border border-border rounded-xl text-sm text-text-primary
+      placeholder:text-text-secondary
+      focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all;
+  }
+
+  .nexo-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium text-sm
+      bg-primary text-white hover:bg-primary-dark
+      disabled:opacity-50 disabled:pointer-events-none transition-colors;
+  }
+
+  .nexo-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-lg text-text-secondary
+      hover:text-text-primary hover:bg-background transition-colors;
+  }
+
+  .nexo-icon-btn {
+    @apply p-2 rounded-full shrink-0 text-text-secondary
+      hover:text-text-primary hover:bg-background transition-colors;
+  }
+
+  .nexo-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-text-secondary) 35%, transparent) transparent;
+  }
+
+  .nexo-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .nexo-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
+    border-radius: 999px;
   }
 }

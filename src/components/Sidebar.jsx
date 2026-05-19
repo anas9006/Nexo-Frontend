@@ -3,45 +3,47 @@ import { Search, Sparkles } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 
-const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading, messages } = useChatStore();
+const Sidebar = ({ onConversationSelect }) => {
+  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } =
+    useChatStore();
   const { onlineUsers } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all"); // 'all', 'unread', 'favorites'
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
 
+  const selectConversation = (user) => {
+    setSelectedUser(user);
+    onConversationSelect?.();
+  };
+
   const filteredUsers = users.filter((user) => {
-    // 1. Filter by search term
-    if (searchTerm && !user.fullName.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (
+      searchTerm &&
+      !user.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+    ) {
       return false;
     }
-    
-    // 2. Filter by tab (mocking unread/favorites for now, all users show up in 'all')
     if (activeTab === "online" && !onlineUsers.includes(user._id)) {
-        return false;
+      return false;
     }
-    
     return true;
   });
 
   return (
-    <div className="w-full h-full flex flex-col bg-surface">
-      <div className="p-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-textPrimary">Messages</h2>
+    <div className="w-full h-full flex flex-col bg-surface min-h-0">
+      <div className="px-3 pt-3 pb-2 shrink-0">
+        <h2 className="text-sm font-bold text-text-primary">Messages</h2>
       </div>
 
-      {/* Search Input */}
-      <div className="px-4 pb-4">
+      <div className="px-3 pb-2 shrink-0">
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-textSecondary" />
-          </div>
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary pointer-events-none" />
           <input
             type="text"
-            className="block w-full pl-9 pr-3 py-2 bg-background border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm"
+            className="nexo-input pl-8 py-1.5 text-xs sm:text-sm"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -49,70 +51,91 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="flex px-4 gap-4 text-sm font-medium border-b border-gray-100">
-        <button 
+      <div className="flex px-3 gap-3 text-xs font-medium border-b border-border shrink-0">
+        <button
+          type="button"
           onClick={() => setActiveTab("all")}
-          className={`pb-2 transition-colors ${activeTab === "all" ? "text-primary border-b-2 border-primary" : "text-textSecondary hover:text-textPrimary"}`}
+          className={`pb-2 transition-colors ${
+            activeTab === "all"
+              ? "text-primary border-b-2 border-primary"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
         >
-          All messages
+          All
         </button>
-        <button 
+        <button
+          type="button"
           onClick={() => setActiveTab("online")}
-          className={`pb-2 transition-colors ${activeTab === "online" ? "text-primary border-b-2 border-primary" : "text-textSecondary hover:text-textPrimary"}`}
+          className={`pb-2 transition-colors ${
+            activeTab === "online"
+              ? "text-primary border-b-2 border-primary"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
         >
           Online
         </button>
       </div>
 
-      <div className="p-4">
-        <button 
-          onClick={() => setSelectedUser(null)}
-          className={`w-full ${selectedUser === null ? 'bg-primaryDark' : 'bg-primary'} hover:bg-primaryDark text-white py-3 rounded-xl flex items-center justify-center gap-2 font-medium shadow-sm transition-colors`}
+      <div className="p-2 sm:p-3 shrink-0">
+        <button
+          type="button"
+          onClick={() => selectConversation(null)}
+          className={`w-full text-white py-2 sm:py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium transition-colors ${
+            selectedUser === null
+              ? "bg-primary-dark"
+              : "bg-primary hover:bg-primary-dark"
+          }`}
         >
-          <Sparkles className="w-4 h-4" />
-          Chat smarter with Nexo AI!
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Nexo AI</span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto nexo-scrollbar min-h-0">
         {isUsersLoading ? (
-          <div className="p-4 text-center text-textSecondary text-sm">Loading users...</div>
+          <p className="p-3 text-center text-text-secondary text-xs">
+            Loading users...
+          </p>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-4 text-center text-textSecondary text-sm">No users found.</div>
+          <p className="p-3 text-center text-text-secondary text-xs">
+            No users found.
+          </p>
         ) : (
           filteredUsers.map((user) => (
             <button
               key={user._id}
-              onClick={() => setSelectedUser(user)}
-              className={`w-full p-4 flex items-center gap-3 hover:bg-background transition-colors ${selectedUser?._id === user._id ? 'bg-background' : ''}`}
+              type="button"
+              onClick={() => selectConversation(user)}
+              className={`w-full px-2 sm:px-3 py-2 flex items-center gap-2.5 hover:bg-background transition-colors ${
+                selectedUser?._id === user._id ? "bg-background" : ""
+              }`}
             >
-              <div className="relative">
-                <div className="w-12 h-12 rounded-full bg-primary/20 overflow-hidden">
+              <div className="relative shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary/15 overflow-hidden">
                   {user.profilePic ? (
-                    <img src={user.profilePic} alt={user.fullName} className="w-full h-full object-cover" />
+                    <img
+                      src={user.profilePic}
+                      alt={user.fullName}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-primary font-bold text-lg">
+                    <span className="w-full h-full flex items-center justify-center text-primary font-bold text-sm">
                       {user.fullName.charAt(0)}
-                    </div>
+                    </span>
                   )}
                 </div>
                 {onlineUsers.includes(user._id) && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-surface"></span>
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success rounded-full border-2 border-surface" />
                 )}
               </div>
               <div className="text-left flex-1 min-w-0">
-                <div className="font-medium text-textPrimary truncate">{user.fullName}</div>
-                <div className="text-xs text-textSecondary truncate">
+                <p className="font-medium text-sm text-text-primary truncate">
+                  {user.fullName}
+                </p>
+                <p className="text-[11px] text-text-secondary truncate">
                   {onlineUsers.includes(user._id) ? "Online" : "Offline"}
-                </div>
+                </p>
               </div>
-              
-              {/* Mock Unread Badge for demo purposes */}
-              {user._id.length % 2 === 0 && !onlineUsers.includes(user._id) && selectedUser?._id !== user._id && (
-                <div className="w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  1
-                </div>
-              )}
             </button>
           ))
         )}
