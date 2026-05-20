@@ -205,7 +205,7 @@ const Settings = () => {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-background overflow-y-auto nexo-scrollbar p-3 sm:p-4">
+    <div className="h-dvh bg-background overflow-y-auto nexo-scrollbar p-3 sm:p-4">
       <div className="w-full max-w-lg mx-auto space-y-4">
         <div className="nexo-panel p-4 sm:p-6">
           <div className="relative text-center mb-6">
