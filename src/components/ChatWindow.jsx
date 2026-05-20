@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { compressImageFile, blobToUploadDataURL } from "../lib/media.js";
 import ImageLightbox from "./ImageLightbox.jsx";
 import UserProfileModal from "./UserProfileModal.jsx";
+import ConfirmModal from "./ConfirmModal.jsx";
 
 /* ─────────────────────────────────────────────
    All colors intentionally use the ORIGINAL
@@ -112,7 +113,7 @@ const EmptyState = ({ selectedUser }) => (
 );
 
 /* ── Single message bubble ── */
-const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onImageClick, onEditRequest, onAvatarClick }) => {
+const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDeleteRequest, onImageClick, onEditRequest, onAvatarClick }) => {
   const time = new Date(msg.createdAt || Date.now())
     .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -152,7 +153,7 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onIm
                 </button>
               )}
               <button
-                onClick={() => onDelete(msg._id)}
+                onClick={() => onDeleteRequest?.(msg)}
                 title="Delete message"
                 className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 flex-shrink-0"
               >
@@ -252,6 +253,7 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   const [lightboxState, setLightboxState] = useState({ src: null, images: [], index: 0 });
   const [editingMessage, setEditingMessage] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
+  const [deleteConfirmMsg, setDeleteConfirmMsg] = useState(null);
 
 
   const mediaRecorderRef = useRef(null);
@@ -338,6 +340,14 @@ const ChatWindow = ({ onBack, showBack = false }) => {
     setText(msg.text || "");
     inputRef.current?.focus();
   };
+
+  const handleDeleteRequest = (msg) => setDeleteConfirmMsg(msg);
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirmMsg) return;
+    useChatStore.getState().deleteMessage(deleteConfirmMsg._id);
+    setDeleteConfirmMsg(null);
+  };
+  const handleDeleteCancel = () => setDeleteConfirmMsg(null);
 
   const cancelEditing = () => {
     setEditingMessage(null);
@@ -434,7 +444,7 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           isAi={msg.isAiResponse}
           authUser={authUser}
           selectedUser={selectedUser}
-          onDelete={(id) => useChatStore.getState().deleteMessage(id)}
+          onDeleteRequest={handleDeleteRequest}
           onImageClick={(src) => openLightboxWithImages(getMessageImages(), getMessageImages().indexOf(src))}
           onEditRequest={handleEditRequest}
           onAvatarClick={() => setProfileUser(selectedUser)}
@@ -705,6 +715,15 @@ const ChatWindow = ({ onBack, showBack = false }) => {
       {profileUser && (
         <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
       )}
+
+      <ConfirmModal
+        open={!!deleteConfirmMsg}
+        title="Delete message?"
+        message="Are you sure you want to delete this message? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </div>
   );
 };

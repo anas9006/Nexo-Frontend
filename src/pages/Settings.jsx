@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 import {
   Moon, Sun, Bell, BellOff, Volume2, VolumeX,
   Lock, Eye, EyeOff, UserX, Trash2, Pencil, Check, X,
-  Loader2, User, ShieldBan,
+  Loader2, User, ShieldBan, ArrowLeft,
 } from "lucide-react";
 
 const Settings = () => {
@@ -207,7 +208,13 @@ const Settings = () => {
     <div className="min-h-[100dvh] bg-background overflow-y-auto nexo-scrollbar p-3 sm:p-4">
       <div className="w-full max-w-lg mx-auto space-y-4">
         <div className="nexo-panel p-4 sm:p-6">
-          <div className="text-center mb-6">
+          <div className="relative text-center mb-6">
+            <Link
+              to="/"
+              className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-background transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Settings</h1>
             <p className="text-text-secondary text-sm mt-1">Account preferences</p>
           </div>
