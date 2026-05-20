@@ -243,7 +243,7 @@ const ChatWindow = ({ onBack, showBack = false }) => {
     isMessagesLoading, isSendingMessage, selectedUser, subscribeToMessages,
     unsubscribeFromMessages, hasMoreMessages, loadMoreMessages,
   } = useChatStore();
-  const { authUser, onlineUsers } = useAuthStore();
+  const { authUser, onlineUsers, socket } = useAuthStore();
 
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
@@ -263,14 +263,16 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   const inputRef = useRef(null);
 
   useEffect(() => {
+    if (!socket) return;
     if (selectedUser) {
-      getMessages(selectedUser._id);
-      subscribeToMessages();
+      getMessages(selectedUser._id).then(() => {
+        subscribeToMessages();
+      });
     } else {
       getAiMessages();
     }
     return () => unsubscribeFromMessages();
-  }, [selectedUser, getMessages, getAiMessages, subscribeToMessages, unsubscribeFromMessages]);
+  }, [selectedUser, getMessages, getAiMessages, subscribeToMessages, unsubscribeFromMessages, socket]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

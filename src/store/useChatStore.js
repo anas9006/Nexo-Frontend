@@ -157,7 +157,7 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
-    socket.on("newMessage", (newMessage) => {
+    const onNewMessage = (newMessage) => {
       const senderId = newMessage.senderId?._id ?? newMessage.senderId;
       if (String(senderId) !== String(selectedUser._id)) return;
 
@@ -169,24 +169,34 @@ export const useChatStore = create((set, get) => ({
       set({
         messages: [...get().messages, newMessage],
       });
-    });
+    };
 
-    socket.on("messageDeleted", (messageId) => {
+    const onMessageDeleted = (messageId) => {
       set({ messages: get().messages.filter(msg => msg._id !== messageId) });
-    });
+    };
 
-    socket.on("messageEdited", (editedMessage) => {
+    const onMessageEdited = (editedMessage) => {
       set({ messages: get().messages.map((m) => (m._id === editedMessage._id ? editedMessage : m)) });
-    });
+    };
+
+    socket.on("newMessage", onNewMessage);
+    socket.on("messageDeleted", onMessageDeleted);
+    socket.on("messageEdited", onMessageEdited);
+
+    set({ _messageListeners: { onNewMessage, onMessageDeleted, onMessageEdited } });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
-    socket.off("newMessage");
-    socket.off("messageDeleted");
-    socket.off("messageEdited");
+    const { _messageListeners } = get();
+    if (_messageListeners) {
+      socket.off("newMessage", _messageListeners.onNewMessage);
+      socket.off("messageDeleted", _messageListeners.onMessageDeleted);
+      socket.off("messageEdited", _messageListeners.onMessageEdited);
+      set({ _messageListeners: null });
+    }
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),

@@ -6,7 +6,7 @@ import { useAuthStore } from "../store/useAuthStore";
 const Sidebar = ({ onConversationSelect, searchTerm: externalSearchTerm = "" }) => {
   const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } =
     useChatStore();
-  const { onlineUsers } = useAuthStore();
+  const { onlineUsers, socket } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
 
   const effectiveSearchTerm = externalSearchTerm || searchTerm;
@@ -15,6 +15,19 @@ const Sidebar = ({ onConversationSelect, searchTerm: externalSearchTerm = "" }) 
   useEffect(() => {
     getUsers();
   }, [getUsers]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const refresh = () => getUsers();
+    socket.on("newMessage", refresh);
+    socket.on("userUpdated", refresh);
+    socket.on("userDeleted", refresh);
+    return () => {
+      socket.off("newMessage", refresh);
+      socket.off("userUpdated", refresh);
+      socket.off("userDeleted", refresh);
+    };
+  }, [socket, getUsers]);
 
   const selectConversation = (user) => {
     setSelectedUser(user);

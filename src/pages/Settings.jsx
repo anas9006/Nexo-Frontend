@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 import {
   Moon, Sun, Bell, BellOff, Volume2, VolumeX,
   Lock, Eye, EyeOff, UserX, Trash2, Pencil, Check, X,
@@ -35,6 +36,7 @@ const Settings = () => {
 
   const [deletePassword, setDeletePassword] = useState("");
   const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false);
 
   /* ── Name editing ── */
   const [editingName, setEditingName] = useState(false);
@@ -152,10 +154,6 @@ const Settings = () => {
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
       toast.error("Please enter your password");
-      return;
-    }
-
-    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       return;
     }
 
@@ -431,7 +429,7 @@ const Settings = () => {
                   </button>
                 </div>
                 <button
-                  onClick={handleDeleteAccount}
+                  onClick={() => setDeleteAccountConfirm(true)}
                   disabled={isLoading || savingSetting || !deletePassword}
                   className="w-full bg-danger hover:bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
@@ -443,6 +441,15 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={deleteAccountConfirm}
+        title="Delete account?"
+        message="Are you sure you want to delete your account? This action cannot be undone."
+        confirmLabel="Delete Account"
+        onConfirm={() => { setDeleteAccountConfirm(false); handleDeleteAccount(); }}
+        onCancel={() => setDeleteAccountConfirm(false)}
+      />
     </div>
   );
 };

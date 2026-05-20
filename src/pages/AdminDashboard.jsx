@@ -27,7 +27,7 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-background overflow-y-auto nexo-scrollbar p-3 sm:p-4 md:p-6">
+    <div className="min-h-dvh bg-background overflow-y-auto nexo-scrollbar p-3 sm:p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center gap-3 mb-5 sm:mb-6">
           <Link

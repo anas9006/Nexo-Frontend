@@ -63,11 +63,11 @@ const Navbar = ({ onOpenSidebar, showSidebarToggle = false, searchTerm = "", onS
 
       <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
         <button type="button" className="nexo-icon-btn relative hidden sm:flex">
-          <Bell className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+          <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full ring-2 ring-surface" />
         </button>
         <button type="button" className="nexo-icon-btn hidden md:flex">
-          <MessageSquare className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+          <MessageSquare className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
         </button>
 
         <div className="relative" ref={dropdownRef}>

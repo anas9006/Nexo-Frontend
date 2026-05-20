@@ -88,6 +88,12 @@ export const useAuthStore = create((set, get) => ({
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+
+    socket.on("forceLogout", () => {
+      clearStoredToken();
+      set({ authUser: null, socket: null });
+      window.location.href = "/login";
+    });
   },
 
   disconnectSocket: () => {
