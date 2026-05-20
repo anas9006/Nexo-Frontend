@@ -3,11 +3,13 @@ import { Search, Sparkles } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 
-const Sidebar = ({ onConversationSelect }) => {
+const Sidebar = ({ onConversationSelect, searchTerm: externalSearchTerm = "" }) => {
   const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } =
     useChatStore();
   const { onlineUsers } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const effectiveSearchTerm = externalSearchTerm || searchTerm;
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
@@ -21,8 +23,8 @@ const Sidebar = ({ onConversationSelect }) => {
 
   const filteredUsers = users.filter((user) => {
     if (
-      searchTerm &&
-      !user.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+      effectiveSearchTerm &&
+      !user.fullName.toLowerCase().includes(effectiveSearchTerm.toLowerCase())
     ) {
       return false;
     }

@@ -1,12 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { useAuthStore } from "./store/useAuthStore";
 import { Toaster } from "react-hot-toast";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
+import { Loader2 } from "lucide-react";
+
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Profile = lazy(() => import("./pages/Profile"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 function App() {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -14,6 +18,15 @@ function App() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    const isDark = authUser?.settings?.darkMode;
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [authUser?.settings?.darkMode]);
 
   if (isCheckingAuth) {
     return (
@@ -26,15 +39,25 @@ function App() {
     );
   }
 
+  const fallback = (
+    <div className="h-[100dvh] flex items-center justify-center bg-background">
+      <Loader2 className="w-6 h-6 text-primary animate-spin" />
+    </div>
+  );
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={authUser ? <Home /> : <Navigate to="/login" />} />
-        <Route path="/login" element={!authUser ? <Login /> : <Navigate to="/" />} />
-        <Route path="/signup" element={!authUser ? <Signup /> : <Navigate to="/" />} />
-        <Route path="/profile" element={authUser ? <Profile /> : <Navigate to="/login" />} />
-        <Route path="/admin" element={authUser ? <AdminDashboard /> : <Navigate to="/login" />} />
-      </Routes>
+      <Suspense fallback={fallback}>
+        <Routes>
+          <Route path="/" element={authUser ? <Home /> : <Navigate to="/login" />} />
+          <Route path="/login" element={!authUser ? <Login /> : <Navigate to="/" />} />
+          <Route path="/signup" element={!authUser ? <Signup /> : <Navigate to="/" />} />
+          <Route path="/profile" element={authUser ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/settings" element={authUser ? <Settings /> : <Navigate to="/login" />} />
+          <Route path="/admin" element={authUser ? <AdminDashboard /> : <Navigate to="/login" />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
       <Toaster />
     </BrowserRouter>
   );

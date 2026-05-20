@@ -1,24 +1,29 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { axiosInstance } from "../lib/axios";
-import { Users, MessageSquare, Sparkles, ArrowLeft, Loader2 } from "lucide-react";
+import { Users, MessageSquare, Sparkles, ArrowLeft, Loader2, Shield, User } from "lucide-react";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
+  const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axiosInstance.get("/admin/stats");
-        setStats(res.data);
+        const [statsRes, usersRes] = await Promise.all([
+          axiosInstance.get("/admin/stats"),
+          axiosInstance.get("/admin/users"),
+        ]);
+        setStats(statsRes.data);
+        setUsers(usersRes.data);
       } catch (error) {
-        console.error("Failed to fetch admin stats:", error);
+        console.error("Failed to fetch admin data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchStats();
+    fetchData();
   }, []);
 
   return (
@@ -44,35 +49,86 @@ const AdminDashboard = () => {
             <Loader2 className="w-7 h-7 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            <StatCard
-              icon={Users}
-              label="Total users"
-              value={stats?.totalUsers || 0}
-              tone="primary"
-            />
-            <StatCard
-              icon={MessageSquare}
-              label="Total messages"
-              value={stats?.totalMessages || 0}
-              tone="primary"
-            />
-            <StatCard
-              icon={Sparkles}
-              label="AI interactions"
-              value={stats?.aiMessages || 0}
-              tone="accent"
-            />
-          </div>
-        )}
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <StatCard
+                icon={Users}
+                label="Total users"
+                value={stats?.totalUsers || 0}
+                tone="primary"
+              />
+              <StatCard
+                icon={MessageSquare}
+                label="Total messages"
+                value={stats?.totalMessages || 0}
+                tone="primary"
+              />
+              <StatCard
+                icon={Sparkles}
+                label="AI interactions"
+                value={stats?.aiMessages || 0}
+                tone="accent"
+              />
+            </div>
 
-        <div className="mt-4 sm:mt-6 nexo-panel p-4 sm:p-5">
-          <h2 className="text-base font-bold text-text-primary mb-3">Platform health</h2>
-          <div className="p-3 bg-primary-light border border-primary/20 rounded-xl text-primary flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 bg-success rounded-full animate-pulse shrink-0" />
-            All systems operational.
-          </div>
-        </div>
+            <div className="mt-4 sm:mt-6 nexo-panel p-4 sm:p-5">
+              <h2 className="text-base font-bold text-text-primary mb-3">Platform health</h2>
+              <div className="p-3 bg-primary-light border border-primary/20 rounded-xl text-primary flex items-center gap-2 text-sm">
+                <span className="w-2 h-2 bg-success rounded-full animate-pulse shrink-0" />
+                All systems operational.
+              </div>
+            </div>
+
+            <div className="mt-4 sm:mt-6 nexo-panel p-4 sm:p-5">
+              <h2 className="text-base font-bold text-text-primary mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5" /> Users
+              </h2>
+              <div className="space-y-2">
+                {users.map((user) => (
+                  <div
+                    key={user._id}
+                    className="flex items-center justify-between p-3 bg-background rounded-xl border border-border"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                        {user.profilePic ? (
+                          <img
+                            src={user.profilePic}
+                            alt={user.fullName}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-primary font-bold">
+                            {user.fullName?.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {user.fullName}
+                        </p>
+                        <p className="text-xs text-text-secondary truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {user.role === "admin" ? (
+                        <span className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                          <Shield className="w-3 h-3" /> Admin
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2 py-1 bg-background border border-border text-text-secondary rounded-full text-xs font-medium">
+                          <User className="w-3 h-3" /> User
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

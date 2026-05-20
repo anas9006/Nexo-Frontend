@@ -3,10 +3,13 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useNotifications } from "../hooks/useNotifications";
 
 const Home = () => {
+  useNotifications();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [mobilePanel, setMobilePanel] = useState("sidebar");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (!isMobile) setMobilePanel("sidebar");
@@ -28,6 +31,8 @@ const Home = () => {
       <Navbar
         onOpenSidebar={openSidebar}
         showSidebarToggle={isMobile && mobilePanel === "chat"}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
       />
 
       <div className="flex-1 flex min-h-0 p-1.5 sm:p-2 md:p-3 gap-1.5 sm:gap-2 md:gap-3">
@@ -38,7 +43,7 @@ const Home = () => {
               ${isMobile ? "flex-1 w-full" : "hidden md:flex w-[min(100%,17.5rem)] lg:w-80"}
             `}
           >
-            <Sidebar onConversationSelect={openChat} />
+            <Sidebar onConversationSelect={openChat} searchTerm={searchTerm} />
           </aside>
         )}
 

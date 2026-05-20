@@ -6,10 +6,13 @@ import { useAuthStore } from "./useAuthStore";
 export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
-  selectedUser: null, // If null, user is in AI chat
+  selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
   isSendingMessage: false,
+  hasMoreMessages: false,
+  messagesPage: 1,
+  messagesTotal: 0,
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -24,14 +27,38 @@ export const useChatStore = create((set, get) => ({
   },
 
   getMessages: async (userId) => {
-    set({ isMessagesLoading: true });
+    set({ isMessagesLoading: true, messages: [], messagesPage: 1, hasMoreMessages: false, messagesTotal: 0 });
     try {
-      const res = await axiosInstance.get(`/messages/${userId}`);
-      set({ messages: res.data });
+      const res = await axiosInstance.get(`/messages/${userId}?page=1&limit=50`);
+      const data = res.data;
+      set({
+        messages: data.messages,
+        hasMoreMessages: data.hasMore,
+        messagesPage: 1,
+        messagesTotal: data.total,
+      });
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  loadMoreMessages: async () => {
+    const { selectedUser, messagesPage } = get();
+    if (!selectedUser) return;
+
+    const nextPage = messagesPage + 1;
+    try {
+      const res = await axiosInstance.get(`/messages/${selectedUser._id}?page=${nextPage}&limit=50`);
+      const data = res.data;
+      set({
+        messages: [...data.messages, ...get().messages],
+        hasMoreMessages: data.hasMore,
+        messagesPage: nextPage,
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load more messages");
     }
   },
 
@@ -71,15 +98,26 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  sendAiMessage: async (text) => {
+  sendAiMessage: async (payload) => {
     const { messages } = get();
-    // Optimistic UI for AI
-    const tempUserMessage = { _id: Date.now(), text, senderId: useAuthStore.getState().authUser._id, isAiResponse: false, createdAt: new Date().toISOString() };
+    const { text, image, audio } = payload;
+    const tempUserMessage = {
+      _id: Date.now(),
+      text: text || "",
+      image: image || undefined,
+      audio: audio || undefined,
+      senderId: useAuthStore.getState().authUser._id,
+      isAiResponse: false,
+      createdAt: new Date().toISOString(),
+    };
     set({ messages: [...messages, tempUserMessage] });
 
     try {
-      const res = await axiosInstance.post("/ai/chat", { message: text });
-      // API returns both userMessage and aiMessage saved in DB
+      const res = await axiosInstance.post("/ai/chat", {
+        message: text || "",
+        image: image || undefined,
+        audio: audio || undefined,
+      });
       set({ messages: [...messages, res.data.userMessage, res.data.aiMessage] });
     } catch (error) {
       const data = error.response?.data;
@@ -88,8 +126,17 @@ export const useChatStore = create((set, get) => ({
           ? `${data.error} ${data.details}`
           : data?.error || data?.details;
       toast.error(hint || "Failed to get AI response");
-      // Remove optimistic message if failed
       set({ messages: messages });
+    }
+  },
+
+  editMessage: async ({ messageId, newText }) => {
+    try {
+      const res = await axiosInstance.patch(`/messages/${messageId}`, { text: newText });
+      set({ messages: get().messages.map((m) => (m._id === messageId ? res.data : m)) });
+      toast.success("Message updated");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to edit message");
     }
   },
 
@@ -127,6 +174,10 @@ export const useChatStore = create((set, get) => ({
     socket.on("messageDeleted", (messageId) => {
       set({ messages: get().messages.filter(msg => msg._id !== messageId) });
     });
+
+    socket.on("messageEdited", (editedMessage) => {
+      set({ messages: get().messages.map((m) => (m._id === editedMessage._id ? editedMessage : m)) });
+    });
   },
 
   unsubscribeFromMessages: () => {
@@ -135,6 +186,7 @@ export const useChatStore = create((set, get) => ({
 
     socket.off("newMessage");
     socket.off("messageDeleted");
+    socket.off("messageEdited");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),

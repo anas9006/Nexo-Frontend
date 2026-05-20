@@ -1,7 +1,16 @@
 import { useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Download, ChevronLeft, ChevronRight } from "lucide-react";
 
-const ImageLightbox = ({ src, alt = "Image", onClose }) => {
+const ImageLightbox = ({
+  src,
+  alt = "Image",
+  onClose,
+  onPrev,
+  onNext,
+  showPrev = false,
+  showNext = false,
+  onDownload,
+}) => {
   useEffect(() => {
     if (!src) return;
 
@@ -43,6 +52,42 @@ const ImageLightbox = ({ src, alt = "Image", onClose }) => {
         <X className="w-5 h-5" />
       </button>
 
+      {(showPrev || showNext || onDownload) && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 sm:top-4 z-10 flex items-center gap-2">
+
+          {showPrev && (
+            <button
+              type="button"
+              onClick={onPrev}
+              className="p-2 rounded-full bg-surface/90 text-text-primary hover:bg-surface shadow-lg border border-border transition-colors"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          {onDownload && (
+            <button
+              type="button"
+              onClick={onDownload}
+              className="p-2 rounded-full bg-surface/90 text-text-primary hover:bg-surface shadow-lg border border-border transition-colors"
+              aria-label="Download"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          )}
+          {showNext && (
+            <button
+              type="button"
+              onClick={onNext}
+              className="p-2 rounded-full bg-surface/90 text-text-primary hover:bg-surface shadow-lg border border-border transition-colors"
+              aria-label="Next"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      )}
+
       <img
         src={src}
         alt={alt}
@@ -54,3 +99,4 @@ const ImageLightbox = ({ src, alt = "Image", onClose }) => {
 };
 
 export default ImageLightbox;
+

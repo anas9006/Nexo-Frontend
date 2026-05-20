@@ -18,6 +18,20 @@
   --radius-panel: 0.875rem;
 }
 
+.dark {
+  --color-primary: #ff6a3d;
+  --color-primary-dark: #e55a2d;
+  --color-primary-light: #2d1a14;
+  --color-background: #111113;
+  --color-surface: #1b1b1f;
+  --color-text-primary: #e8e8ea;
+  --color-text-secondary: #8b8b8f;
+  --color-border: #2a2a2e;
+  --color-border-strong: #3a3a3e;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;

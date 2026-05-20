@@ -12,7 +12,7 @@ import {
 import { useAuthStore } from "../store/useAuthStore";
 import { Link } from "react-router-dom";
 
-const Navbar = ({ onOpenSidebar, showSidebarToggle = false }) => {
+const Navbar = ({ onOpenSidebar, showSidebarToggle = false, searchTerm = "", onSearchChange }) => {
   const { authUser, logout } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -55,6 +55,8 @@ const Navbar = ({ onOpenSidebar, showSidebarToggle = false }) => {
             type="text"
             className="nexo-input pl-9 py-1.5 text-sm rounded-full border-transparent bg-background"
             placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange?.(e.target.value)}
           />
         </div>
       </div>
@@ -106,20 +108,23 @@ const Navbar = ({ onOpenSidebar, showSidebarToggle = false }) => {
                 <User className="w-4 h-4" /> Profile
               </Link>
 
+              {authUser?.role === "admin" && (
+                <Link
+                  to="/admin"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
+                >
+                  <ShieldCheck className="w-4 h-4" /> Admin
+                </Link>
+              )}
+
               <Link
-                to="/admin"
+                to="/settings"
                 onClick={() => setIsDropdownOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
               >
-                <ShieldCheck className="w-4 h-4" /> Admin
-              </Link>
-
-              <button
-                type="button"
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary text-left"
-              >
                 <Settings className="w-4 h-4" /> Settings
-              </button>
+              </Link>
 
               <div className="border-t border-border mt-0.5 pt-0.5">
                 <button

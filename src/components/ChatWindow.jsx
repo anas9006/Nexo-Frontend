@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Gift, MoreHorizontal, Image as ImageIcon,
-  Mic, Send, Loader2, X, Square, Trash2, Bot, CheckCheck, ChevronLeft,
+  Mic, Send, Loader2, X, Square, Trash2, Bot, CheckCheck, ChevronLeft, Pencil, Undo2,
 } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import toast from "react-hot-toast";
 import { compressImageFile, blobToUploadDataURL } from "../lib/media.js";
 import ImageLightbox from "./ImageLightbox.jsx";
+import UserProfileModal from "./UserProfileModal.jsx";
 
 /* ─────────────────────────────────────────────
    All colors intentionally use the ORIGINAL
@@ -18,17 +19,27 @@ import ImageLightbox from "./ImageLightbox.jsx";
 ───────────────────────────────────────────── */
 
 /* ── Avatar ── */
-const Avatar = ({ user, size = 36, isAi = false }) => {
+const Avatar = ({ user, size = 36, isAi = false, onClick }) => {
   const dim = { width: size, height: size };
+  const wrap = (children) => {
+    if (onClick) {
+      return (
+        <button type="button" onClick={onClick} className="rounded-full flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" style={dim}>
+          {children}
+        </button>
+      );
+    }
+    return children;
+  };
   if (isAi) {
-    return (
+    return wrap(
       <div className="rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0" style={dim}>
         <Bot className="text-primary" style={{ width: size * 0.48, height: size * 0.48 }} />
       </div>
     );
   }
   if (!user) return null;
-  return (
+  return wrap(
     <div className="rounded-full bg-primary/20 overflow-hidden flex-shrink-0 flex items-center justify-center" style={dim}>
       {user.profilePic
         ? <img src={user.profilePic} alt={user.fullName} className="w-full h-full object-cover" />
@@ -101,7 +112,7 @@ const EmptyState = ({ selectedUser }) => (
 );
 
 /* ── Single message bubble ── */
-const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onImageClick }) => {
+const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onImageClick, onEditRequest, onAvatarClick }) => {
   const time = new Date(msg.createdAt || Date.now())
     .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -111,7 +122,7 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onIm
       {/* Receiver avatar — LEFT */}
       {!isMe && (
         <div className="mb-5 flex-shrink-0">
-          {isAi ? <Avatar isAi size={28} /> : <Avatar user={selectedUser} size={28} />}
+          {isAi ? <Avatar isAi size={28} /> : <Avatar user={selectedUser} size={28} onClick={onAvatarClick} />}
         </div>
       )}
 
@@ -125,18 +136,29 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onIm
           </span>
         )}
 
-        {/* Bubble + hover-delete row */}
+        {/* Bubble + actions row */}
         <div className={`flex items-center gap-1.5 ${isMe ? "flex-row" : "flex-row-reverse"}`}>
 
-          {/* Delete (sender only) */}
+          {/* Actions (sender only) */}
           {isMe && !isAi && msg._id && (
-            <button
-              onClick={() => onDelete(msg._id)}
-              title="Delete message"
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-red-400 hover:bg-red-50 flex-shrink-0"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+              {msg.text && (
+                <button
+                  onClick={() => onEditRequest?.(msg)}
+                  title="Edit message"
+                  className="p-1.5 rounded-lg text-text-secondary hover:bg-background flex-shrink-0"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                onClick={() => onDelete(msg._id)}
+                title="Delete message"
+                className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 flex-shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
 
           {/* Bubble */}
@@ -194,6 +216,7 @@ const MessageBubble = ({ msg, isMe, isAi, authUser, selectedUser, onDelete, onIm
             <div className={`flex items-center gap-1 mt-0.5 ${isMe ? "justify-end" : "justify-start"} opacity-60`}
               style={{ fontSize: 10 }}>
               <span>{time}</span>
+              {msg.isEdited && <span className="text-text-secondary italic">(edited)</span>}
               {isMe && <CheckCheck className="w-3 h-3" />}
             </div>
           </div>
@@ -217,16 +240,19 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   const {
     messages, getMessages, getAiMessages, sendMessage, sendAiMessage,
     isMessagesLoading, isSendingMessage, selectedUser, subscribeToMessages,
-    unsubscribeFromMessages,
+    unsubscribeFromMessages, hasMoreMessages, loadMoreMessages,
   } = useChatStore();
-  const { authUser } = useAuthStore();
+  const { authUser, onlineUsers } = useAuthStore();
 
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [aiTyping, setAiTyping] = useState(false);
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxState, setLightboxState] = useState({ src: null, images: [], index: 0 });
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
+
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -283,11 +309,65 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   };
   const removeAudio = () => setAudioBlob(null);
 
+  /* lightbox */
+  const openLightboxWithImages = (images, index) => {
+    if (!Array.isArray(images) || images.length === 0) return;
+    const safeIndex = Math.max(0, Math.min(index, images.length - 1));
+    setLightboxState({ src: images[safeIndex], images, index: safeIndex });
+  };
+  const closeLightbox = () => setLightboxState({ src: null, images: [], index: 0 });
+  const goPrev = () => {
+    setLightboxState((s) => {
+      const nextIndex = s.index - 1;
+      if (nextIndex < 0) return s;
+      return { ...s, index: nextIndex, src: s.images[nextIndex] };
+    });
+  };
+  const goNext = () => {
+    setLightboxState((s) => {
+      const nextIndex = s.index + 1;
+      if (nextIndex >= s.images.length) return s;
+      return { ...s, index: nextIndex, src: s.images[nextIndex] };
+    });
+  };
+
+
+  /* edit request */
+  const handleEditRequest = (msg) => {
+    setEditingMessage(msg);
+    setText(msg.text || "");
+    inputRef.current?.focus();
+  };
+
+  const cancelEditing = () => {
+    setEditingMessage(null);
+    setText("");
+  };
+
   /* send */
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview && !audioBlob) return;
     if (isSendingMessage) return;
+
+    if (editingMessage) {
+      if (!text.trim()) {
+        toast.error("Message cannot be empty");
+        return;
+      }
+      try {
+        await useChatStore.getState().editMessage({
+          messageId: editingMessage._id,
+          newText: text.trim(),
+        });
+        setEditingMessage(null);
+        setText("");
+        inputRef.current?.focus();
+      } catch (error) {
+        console.error("Failed to edit message:", error);
+      }
+      return;
+    }
 
     try {
       let audioBase64 = null;
@@ -302,12 +382,12 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           audio: audioBase64 || undefined,
         });
       } else {
-        if (imagePreview || audioBlob) {
-          toast.error("Nexo AI only supports text messages right now.");
-          return;
-        }
         setAiTyping(true);
-        await sendAiMessage(text.trim());
+        await sendAiMessage({
+          text: text.trim() || undefined,
+          image: imagePreview || undefined,
+          audio: audioBase64 || undefined,
+        });
         setAiTyping(false);
       }
 
@@ -323,14 +403,17 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   };
 
   const canSend =
-    !!(text.trim() || imagePreview || audioBlob) &&
+    (editingMessage ? !!text.trim() : !!(text.trim() || imagePreview || audioBlob)) &&
     !isRecording &&
     !isSendingMessage;
 
   /* group by date */
+  const getMessageImages = () => messages.map((m) => m.image).filter(Boolean);
+
   const renderMessages = () => {
     const result = [];
     let lastDate = "";
+
     messages.forEach((msg, idx) => {
       const d = new Date(msg.createdAt || Date.now());
       const today = new Date();
@@ -352,7 +435,9 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           authUser={authUser}
           selectedUser={selectedUser}
           onDelete={(id) => useChatStore.getState().deleteMessage(id)}
-          onImageClick={setLightboxSrc}
+          onImageClick={(src) => openLightboxWithImages(getMessageImages(), getMessageImages().indexOf(src))}
+          onEditRequest={handleEditRequest}
+          onAvatarClick={() => setProfileUser(selectedUser)}
         />
       );
     });
@@ -382,14 +467,14 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           {selectedUser ? (
             <>
               <div className="relative flex-shrink-0">
-                <Avatar user={selectedUser} size={36} />
+                <Avatar user={selectedUser} size={36} onClick={() => setProfileUser(selectedUser)} />
                 <span className="absolute -bottom-0.5 -right-0.5"><OnlineDot /></span>
               </div>
               <div className="min-w-0">
                 <h2 className="font-bold text-text-primary text-sm sm:text-base truncate leading-tight">
                   {selectedUser.fullName}
                 </h2>
-                <p className="text-xs text-success font-medium hidden sm:block leading-tight">Online</p>
+                <p className={`text-xs font-medium hidden sm:block leading-tight ${onlineUsers.includes(selectedUser._id) ? "text-success" : "text-text-secondary"}`}>{onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}</p>
               </div>
             </>
           ) : (
@@ -430,7 +515,20 @@ const ChatWindow = ({ onBack, showBack = false }) => {
         ) : messages.length === 0 ? (
           <EmptyState selectedUser={selectedUser} />
         ) : (
-          renderMessages()
+          <>
+            {hasMoreMessages && (
+              <div className="flex justify-center py-2">
+                <button
+                  type="button"
+                  onClick={loadMoreMessages}
+                  className="text-xs text-text-secondary hover:text-primary font-medium px-4 py-1.5 rounded-full bg-surface border border-border transition-colors"
+                >
+                  Load earlier messages
+                </button>
+              </div>
+            )}
+            {renderMessages()}
+          </>
         )}
 
         {aiTyping && <TypingIndicator />}
@@ -445,7 +543,10 @@ const ChatWindow = ({ onBack, showBack = false }) => {
             <div className="relative inline-block">
               <button
                 type="button"
-                onClick={() => setLightboxSrc(imagePreview)}
+                onClick={() => {
+                  const imgs = getMessageImages();
+                  openLightboxWithImages(imgs, imgs.indexOf(imagePreview));
+                }}
                 className="block rounded-xl overflow-hidden border border-border cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <img
@@ -491,6 +592,24 @@ const ChatWindow = ({ onBack, showBack = false }) => {
         </div>
       )}
 
+      {/* ─── Editing indicator ─── */}
+      {editingMessage && (
+        <div className="mx-2 sm:mx-4 mb-1 flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-xl border border-primary/20">
+          <Pencil className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="text-xs text-text-primary font-medium flex-1 truncate">
+            Editing message
+          </span>
+          <button
+            type="button"
+            onClick={cancelEditing}
+            className="text-text-secondary hover:text-text-primary transition-colors shrink-0"
+            title="Cancel editing"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ─── Input form ─── */}
       <form
         onSubmit={handleSendMessage}
@@ -505,31 +624,35 @@ const ChatWindow = ({ onBack, showBack = false }) => {
         />
 
         {/* Image button */}
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className={`p-2 rounded-full transition-colors flex-shrink-0 ${
-            imagePreview
-              ? "bg-primary/20 text-primary"
-              : "text-text-secondary hover:text-text-primary bg-background hover:bg-background"
-          }`}
-        >
-          <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
+        {!editingMessage && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`p-2 rounded-full transition-colors flex-shrink-0 ${
+              imagePreview
+                ? "bg-primary/20 text-primary"
+                : "text-text-secondary hover:text-text-primary bg-background hover:bg-background"
+            }`}
+          >
+            <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+        )}
 
         {/* Mic button */}
-        <button
-          type="button"
-          onClick={isRecording ? stopRecording : startRecording}
-          className={`p-2 rounded-full transition-colors flex-shrink-0 ${
-            isRecording || audioBlob
-              ? "bg-red-100 text-red-500"
-              : "text-text-secondary hover:text-text-primary bg-background hover:bg-background"
-          }`}
-          style={{ animation: isRecording ? "micPulse 1s ease-in-out infinite" : "none" }}
-        >
-          <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
+        {!editingMessage && (
+          <button
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            className={`p-2 rounded-full transition-colors flex-shrink-0 ${
+              isRecording || audioBlob
+                ? "bg-red-100 text-red-500"
+                : "text-text-secondary hover:text-text-primary bg-background hover:bg-background"
+            }`}
+            style={{ animation: isRecording ? "micPulse 1s ease-in-out infinite" : "none" }}
+          >
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+        )}
 
         {/* Text */}
         <input
@@ -540,7 +663,7 @@ const ChatWindow = ({ onBack, showBack = false }) => {
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); }
           }}
-          placeholder={selectedUser ? `Message ${selectedUser.fullName}...` : "Let's ask Nexo AI..."}
+          placeholder={editingMessage ? "Edit message..." : selectedUser ? `Message ${selectedUser.fullName}...` : "Let's ask Nexo AI..."}
           className="flex-1 bg-transparent outline-none text-text-primary placeholder-textSecondary text-sm px-1 min-w-0"
           disabled={isRecording}
         />
@@ -561,10 +684,27 @@ const ChatWindow = ({ onBack, showBack = false }) => {
       </form>
 
       <ImageLightbox
-        src={lightboxSrc}
+        src={lightboxState.src}
         alt="Chat image"
-        onClose={() => setLightboxSrc(null)}
+        onClose={closeLightbox}
+        showPrev={lightboxState.index > 0}
+        showNext={lightboxState.index < lightboxState.images.length - 1}
+        onPrev={goPrev}
+        onNext={goNext}
+        onDownload={() => {
+          if (!lightboxState.src) return;
+          const a = document.createElement("a");
+          a.href = lightboxState.src;
+          a.download = "image";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }}
       />
+
+      {profileUser && (
+        <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
+      )}
     </div>
   );
 };
