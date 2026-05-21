@@ -8,6 +8,7 @@ import {
   Settings,
   ShieldCheck,
   PanelLeft,
+  X,
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Link } from "react-router-dom";
@@ -15,6 +16,7 @@ import { Link } from "react-router-dom";
 const Navbar = ({ onOpenSidebar, showSidebarToggle = false, searchTerm = "", onSearchChange }) => {
   const { authUser, logout } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -62,11 +64,27 @@ const Navbar = ({ onOpenSidebar, showSidebarToggle = false, searchTerm = "", onS
       </div>
 
       <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-        <button type="button" className="nexo-icon-btn relative hidden sm:flex">
-          <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full ring-2 ring-surface" />
-        </button>
-        <button type="button" className="nexo-icon-btn hidden md:flex">
+        <div className="relative hidden sm:flex">
+          <button type="button" className="nexo-icon-btn relative" onClick={() => setShowNotifications(!showNotifications)}>
+            <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full ring-2 ring-surface" />
+          </button>
+          {showNotifications && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+              <div className="absolute right-0 top-full mt-1 w-72 bg-surface rounded-xl shadow-lg border border-border py-3 z-50">
+                <div className="flex items-center justify-between px-3 pb-2 border-b border-border">
+                  <span className="text-sm font-semibold text-text-primary">Notifications</span>
+                  <button type="button" onClick={() => setShowNotifications(false)} className="text-text-secondary hover:text-text-primary">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-sm text-text-secondary text-center py-4">No new notifications</p>
+              </div>
+            </>
+          )}
+        </div>
+        <button type="button" className="nexo-icon-btn hidden md:flex" onClick={() => console.log("Open conversations")}>
           <MessageSquare className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
         </button>
 

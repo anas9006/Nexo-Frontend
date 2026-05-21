@@ -37,6 +37,7 @@ export const useChatStore = create((set, get) => ({
         messagesPage: 1,
         messagesTotal: data.total,
       });
+      get().getUsers();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
@@ -85,6 +86,7 @@ export const useChatStore = create((set, get) => ({
         messageData
       );
       set({ messages: [...messages, res.data] });
+      get().getUsers();
     } catch (error) {
       const data = error.response?.data;
       const hint =

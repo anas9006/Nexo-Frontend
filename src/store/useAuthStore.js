@@ -101,4 +101,18 @@ export const useAuthStore = create((set, get) => ({
   },
 
   setAuthUser: (user) => set({ authUser: user }),
+
+  blockUser: async (userIdToBlock) => {
+    try {
+      const res = await axiosInstance.post("/users/block", { userIdToBlock });
+      const authUser = get().authUser;
+      if (authUser) {
+        set({ authUser: { ...authUser, blockedUsers: res.data.blockedUsers } });
+      }
+      const isBlocked = res.data.blockedUsers.some(id => String(id) === String(userIdToBlock));
+      toast.success(isBlocked ? "User blocked" : "User unblocked");
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to update block status");
+    }
+  },
 }));

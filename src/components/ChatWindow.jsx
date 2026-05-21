@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Sparkles, Gift, MoreHorizontal, Image as ImageIcon,
+  Sparkles, MoreHorizontal, Image as ImageIcon, User, Ban,
   Mic, Send, Loader2, X, Square, Trash2, Bot, CheckCheck, ChevronLeft, Pencil, Undo2,
 } from "lucide-react";
 import { useChatStore } from "../store/useChatStore";
@@ -254,7 +254,9 @@ const ChatWindow = ({ onBack, showBack = false }) => {
   const [editingMessage, setEditingMessage] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
   const [deleteConfirmMsg, setDeleteConfirmMsg] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
+  const isBlocked = selectedUser && authUser?.blockedUsers?.some(id => String(id) === String(selectedUser._id));
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -509,12 +511,34 @@ const ChatWindow = ({ onBack, showBack = false }) => {
               <span className="hidden sm:inline">Upgrade</span>
             </button>
           )}
-          <button type="button" className="nexo-icon-btn">
-            <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          <button type="button" className="nexo-icon-btn">
-            <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+          <div className="relative">
+            <button type="button" className="nexo-icon-btn" onClick={() => setShowMenu(!showMenu)}>
+              <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 w-44 bg-surface rounded-xl shadow-lg border border-border py-1 z-50">
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-background hover:text-text-primary"
+                    onClick={() => { setProfileUser(selectedUser); setShowMenu(false); }}
+                  >
+                    <User className="w-4 h-4" /> View Profile
+                  </button>
+                  {selectedUser && (
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-red-50"
+                      onClick={() => { useAuthStore.getState().blockUser(selectedUser._id); setShowMenu(false); }}
+                    >
+                      <Ban className="w-4 h-4" /> {isBlocked ? "Unblock User" : "Block User"}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
